@@ -29,7 +29,7 @@ describe('Authenticate Use Case', () => {
   })
 
   it('should be able to authenticate with wrong email', async () => {
-    expect(() =>
+    await expect(() =>
       sut.execute({
         email: 'jhondoe@example.com',
         password: '123456',
@@ -38,7 +38,13 @@ describe('Authenticate Use Case', () => {
   })
 
   it('should be able to authenticate with wrong password', async () => {
-    expect(() =>
+    await inMemoryUsersRepository.create({
+      name: 'John Doe',
+      email: 'jhondoe@example.com',
+      password_hash: await hash('123456', 6),
+    })
+
+    await expect(() =>
       sut.execute({
         email: 'jhondoe@example.com',
         password: '123123',
