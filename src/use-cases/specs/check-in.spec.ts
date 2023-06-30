@@ -19,8 +19,8 @@ describe('Check In Use Case', () => {
       title: 'TypeScript Gym',
       description: '',
       phone: '',
-      latitude: new Decimal(0),
-      longitude: new Decimal(0),
+      latitude: new Decimal(-29.3607216),
+      longitude: new Decimal(-50.8768549),
     }) // TODO with create method
 
     vi.useFakeTimers()
