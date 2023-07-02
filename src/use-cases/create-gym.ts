@@ -4,7 +4,9 @@ import { GymsRepository } from '@/repositories/gyms-repository'
 interface CreateGymUseCaseRequest {
   title: string
   description: string | null
-  phone: string
+  phone: string | null
+  latitude: number
+  longitude: number
 }
 
 interface CreateGymUseCaseResponse {
@@ -22,11 +24,13 @@ export class CreateGymUseCase {
     longitude,
   }: CreateGymUseCaseRequest): Promise<CreateGymUseCaseResponse> {
     const gym = await this.gymsRepository.create({
-      name,
-      email,
-      password_hash,
+      title,
+      description,
+      phone,
+      latitude,
+      longitude,
     })
 
-    return { user }
+    return { gym }
   }
 }
