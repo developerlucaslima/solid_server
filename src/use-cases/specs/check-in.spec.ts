@@ -1,27 +1,28 @@
-import { expect, describe, it, beforeEach, afterEach, vi } from 'vitest'
 import { InMemoryCheckInsRepository } from '@/repositories/in-memory/in-memory-check-ins-repository'
-import { CheckInUseCase } from '../check-in'
+import { expect, describe, it, beforeEach, vi, afterEach } from 'vitest'
+import { CheckInUseCase } from '@/use-cases/check-in'
 import { InMemoryGymsRepository } from '@/repositories/in-memory/in-memory-gyms-repository'
-import { Decimal } from '@prisma/client/runtime/library'
+import { MaxNumberOfCheckInsError } from '@/use-cases/errors/max-number-of-check-ins-error'
+import { MaxDistanceError } from '@/use-cases/errors/max-distance-error'
 
 let inMemoryCheckInsRepository: InMemoryCheckInsRepository
-let gymsRepository: InMemoryGymsRepository
+let inMemoryGymsRepository: InMemoryGymsRepository
 let sut: CheckInUseCase
 
-describe('Check In Use Case', () => {
-  beforeEach(() => {
+describe('Check-in Use Case', () => {
+  beforeEach(async () => {
     inMemoryCheckInsRepository = new InMemoryCheckInsRepository()
-    gymsRepository = new InMemoryGymsRepository()
-    sut = new CheckInUseCase(inMemoryCheckInsRepository, gymsRepository)
+    inMemoryGymsRepository = new InMemoryGymsRepository()
+    sut = new CheckInUseCase(inMemoryCheckInsRepository, inMemoryGymsRepository)
 
-    gymsRepository.items.push({
+    await inMemoryGymsRepository.create({
       id: 'gym-01',
-      title: 'TypeScript Gym',
+      title: 'JavaScript Gym',
       description: '',
       phone: '',
-      latitude: new Decimal(-29.3607216),
-      longitude: new Decimal(-50.8768549),
-    }) // TODO with create method
+      latitude: -27.2092052,
+      longitude: -49.6401091,
+    })
 
     vi.useFakeTimers()
   })
@@ -31,46 +32,44 @@ describe('Check In Use Case', () => {
   })
 
   it('should be able to check in', async () => {
-    vi.setSystemTime(new Date(2022, 0, 20, 8, 0, 0))
-
     const { checkIn } = await sut.execute({
       gymId: 'gym-01',
       userId: 'user-01',
-      userLatitude: -29.3607216,
-      userLongitude: -50.8768549,
+      userLatitude: -27.2092052,
+      userLongitude: -49.6401091,
     })
 
     expect(checkIn.id).toEqual(expect.any(String))
   })
 
-  it('should not be able to check in twice per day', async () => {
+  it('should not be able to check in twice in the same day', async () => {
     vi.setSystemTime(new Date(2022, 0, 20, 8, 0, 0))
 
     await sut.execute({
       gymId: 'gym-01',
       userId: 'user-01',
-      userLatitude: -29.3607216,
-      userLongitude: -50.8768549,
+      userLatitude: -27.2092052,
+      userLongitude: -49.6401091,
     })
 
     await expect(() =>
       sut.execute({
         gymId: 'gym-01',
         userId: 'user-01',
-        userLatitude: -29.3607216,
-        userLongitude: -50.8768549,
+        userLatitude: -27.2092052,
+        userLongitude: -49.6401091,
       }),
-    ).rejects.toBeInstanceOf(Error)
+    ).rejects.toBeInstanceOf(MaxNumberOfCheckInsError)
   })
 
-  it('should be able to check in one time per day', async () => {
+  it('should be able to check in twice but in different days', async () => {
     vi.setSystemTime(new Date(2022, 0, 20, 8, 0, 0))
 
     await sut.execute({
       gymId: 'gym-01',
       userId: 'user-01',
-      userLatitude: -29.3607216,
-      userLongitude: -50.8768549,
+      userLatitude: -27.2092052,
+      userLongitude: -49.6401091,
     })
 
     vi.setSystemTime(new Date(2022, 0, 21, 8, 0, 0))
@@ -78,32 +77,30 @@ describe('Check In Use Case', () => {
     const { checkIn } = await sut.execute({
       gymId: 'gym-01',
       userId: 'user-01',
-      userLatitude: -29.3607216,
-      userLongitude: -50.8768549,
+      userLatitude: -27.2092052,
+      userLongitude: -49.6401091,
     })
 
     expect(checkIn.id).toEqual(expect.any(String))
   })
 
-  it('should not be able to check in at a gym that is far away', async () => {
-    vi.setSystemTime(new Date(2022, 0, 20, 8, 0, 0))
-
-    gymsRepository.items.push({
+  it('should not be able to check in on distant gym', async () => {
+    await inMemoryGymsRepository.create({
       id: 'gym-02',
       title: 'JavaScript Gym',
       description: '',
       phone: '',
-      latitude: new Decimal(-29.3604598),
-      longitude: new Decimal(-50.8217946),
-    }) // TODO with create method
+      latitude: -27.0747279,
+      longitude: -49.4889672,
+    })
 
     await expect(() =>
       sut.execute({
         gymId: 'gym-02',
         userId: 'user-01',
-        userLatitude: -29.3607216,
-        userLongitude: -50.8768549,
+        userLatitude: -27.2092052,
+        userLongitude: -49.6401091,
       }),
-    ).rejects.toBeInstanceOf(Error)
+    ).rejects.toBeInstanceOf(MaxDistanceError)
   })
 })
