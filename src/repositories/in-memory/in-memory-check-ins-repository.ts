@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import { CheckInsRepository } from '../check-ins-repository'
 import { CheckIn, Prisma } from '@prisma/client'
 import dayjs from 'dayjs'
+import { GetResult } from '@prisma/client/runtime'
 
 export class InMemoryCheckInsRepository implements CheckInsRepository {
   public items: CheckIn[] = []
@@ -23,6 +24,10 @@ export class InMemoryCheckInsRepository implements CheckInsRepository {
     }
 
     return checkOnSameDate
+  }
+
+  async findManyByUserId(userId: string) {
+    return this.items.filter(items)
   }
 
   async create(data: Prisma.CheckInUncheckedCreateInput) {
